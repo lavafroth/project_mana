@@ -20,43 +20,35 @@ const orbit = new OrbitControls(camera, renderer.domElement);
 camera.position.set(6, 8, 14);
 orbit.update();
 
-// const planeGeometry = new THREE.PlaneGeometry(10, 10, 30, 30);
-const planeGeometry = new THREE.BoxGeometry(1,1,1);
-// const planeCustomMaterial = new THREE.ShaderMaterial({
-//     vertexShader: `// Vertex shader code here`,
-//     fragmentShader: `// Fragment shader code here`,
-//     wireframe: true
-// });
+// const geometry = new THREE.PlaneGeometry(10, 10, 30, 30);
+const geometry = new THREE.BoxGeometry(1, 1, 1);
 
-planeGeometry.translate(2, 2, 2);
+geometry.translate(2, 2, 2);
 
-const shadowMesh = new THREE.Mesh(
-    planeGeometry,
-);
+const shadowMesh = new THREE.Mesh(geometry);
 
-const what = shadowMesh.geometry.computeBoundingBox();
-
-const targetV3 = new THREE.Vector3()
-shadowMesh.geometry.boundingBox.getCenter(targetV3)
+const didICompute = shadowMesh.geometry.computeBoundingBox();
+const meshCenter = new THREE.Vector3()
+shadowMesh.geometry.boundingBox.getCenter(meshCenter)
 
 const uniforms = {
     u_time: {value: 0.0},
-    mesh_center: {value: targetV3},
+    mesh_center: {value: meshCenter},
 }
 
-const planeCustomMaterial = new THREE.ShaderMaterial({
+const material = new THREE.ShaderMaterial({
     vertexShader: document.getElementById('vertexshader').textContent,
     fragmentShader: document.getElementById('fragmentshader').textContent,
     uniforms,
     // wireframe: true,
 });
 
-const planeMesh = new THREE.Mesh(
-    planeGeometry,
-    planeCustomMaterial
+const mesh = new THREE.Mesh(
+    geometry,
+    material
 );
 
-scene.add(planeMesh);
+scene.add(mesh);
 
 const clock = new THREE.Clock();
 function animate() {

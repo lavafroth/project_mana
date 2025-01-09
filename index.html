@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>tanh</title>
+    <title>project_mana</title>
     <style>
         body {
             margin: 0
@@ -20,14 +20,11 @@
     </script>
 </head>
 <body>
-    <!-- with generous help from Wael Yasmina -->
     <script id="vertexshader" type="vertex">
         uniform float u_time;
         uniform vec3 mesh_center;
         varying vec2 geom2d;
         void main() {
-            // float newX = sin(position.x * u_time) * sin(position.y * u_time);
-            // gl_Position = projectionMatrix * modelViewMatrix * vec4(newX, position.y, position.z, 1.0);
             vec4 geom4d = projectionMatrix * modelViewMatrix * vec4(mesh_center, 1.0);
             vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 
@@ -40,7 +37,28 @@
     <script id="fragmentshader" type="fragment">
         varying vec2 geom2d;
         void main() {
-            float varying_red = tanh(geom2d.y / geom2d.x);
+            float tangent = geom2d.y / geom2d.x;
+            float varying_red = abs(tanh(tangent)) * 0.25;
+            if (tangent < 0.0) {
+                // we're either in the second or the fourth quadrant
+                varying_red = 0.25 - varying_red;
+            }
+
+            if (geom2d.y > 0.0 && geom2d.x < 0.0) {
+                // second quadrant
+                varying_red += 0.25;
+            }
+
+            if (geom2d.y < 0.0 && geom2d.x < 0.0) {
+                // third quadrant
+                varying_red += 0.5;
+            }
+
+            if (geom2d.y < 0.0 && geom2d.x > 0.0) {
+                // fourth quadrant
+                varying_red += 0.75;
+            }
+
             gl_FragColor = vec4(varying_red, 0.8, 0.4, 1.0);
         }
     </script>
