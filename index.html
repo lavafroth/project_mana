@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tanh</title>
+    <style>
+        body {
+            margin: 0
+        }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+        }
+      }
+    </script>
+</head>
+<body>
+    <!-- with generous help from Wael Yasmina -->
+    <script id="vertexshader" type="vertex">
+        uniform float u_time;
+        uniform vec3 mesh_center;
+        varying vec2 geom2d;
+        void main() {
+            // float newX = sin(position.x * u_time) * sin(position.y * u_time);
+            // gl_Position = projectionMatrix * modelViewMatrix * vec4(newX, position.y, position.z, 1.0);
+            vec4 geom4d = projectionMatrix * modelViewMatrix * vec4(mesh_center, 1.0);
+            vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+
+            vec4 delta4d = clipPos - geom4d;
+            geom2d = delta4d.xy;
+            gl_Position = clipPos;
+        }
+    </script>
+
+    <script id="fragmentshader" type="fragment">
+        varying vec2 geom2d;
+        void main() {
+            float varying_red = tanh(geom2d.y / geom2d.x);
+            gl_FragColor = vec4(varying_red, 0.8, 0.4, 1.0);
+        }
+    </script>
+    <script src="/main.js" type="module"></script>
+</body>
+</html>
