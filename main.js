@@ -5,6 +5,17 @@ const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// async await is an overkill
+function get(path) {
+    const request = new XMLHttpRequest();
+    request.open("GET", path, false);
+    request.send(null);
+
+    if (request.status === 200) {
+        return request.responseText;
+    }
+}
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
     45,
@@ -37,8 +48,8 @@ const uniforms = {
 }
 
 const material = new THREE.ShaderMaterial({
-    vertexShader: document.getElementById('vertexshader').textContent,
-    fragmentShader: document.getElementById('fragmentshader').textContent,
+    vertexShader: get('outline.vert'),
+    fragmentShader: get('outline.frag'),
     uniforms,
     // wireframe: true,
 });
