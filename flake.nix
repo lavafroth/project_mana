@@ -17,11 +17,10 @@
       {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
-            tailwindcss
-            vscode-langservers-extracted
             live-server
+            superhtml
             (writeScriptBin "serve" ''
-              ${pkgs.live-server}/bin/live-server --port 8000 ./src &
+              ${pkgs.live-server}/bin/live-server --port 8000 --hard
             '')
           ];
 
