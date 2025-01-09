@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>project_mana</title>
     <style>
-        body {
+      body {
             margin: 0
         }
     </style>
@@ -18,10 +18,10 @@
         }
       }
     </script>
-</head>
-<body>
+  </head>
+  <body>
     <script id="vertexshader" type="vertex">
-        uniform float u_time;
+      uniform float u_time;
         uniform vec3 mesh_center;
         varying vec2 geom2d;
         void main() {
@@ -33,9 +33,8 @@
             gl_Position = clipPos;
         }
     </script>
-
     <script id="fragmentshader" type="fragment">
-        varying vec2 geom2d;
+      varying vec2 geom2d;
         void main() {
             float tangent = geom2d.y / geom2d.x;
             float varying_red = abs(tanh(tangent)) * 0.25;
@@ -63,5 +62,5 @@
         }
     </script>
     <script src="/main.js" type="module"></script>
-</body>
+  </body>
 </html>
