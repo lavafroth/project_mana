@@ -1,16 +1,14 @@
-uniform float u_time;
-uniform vec3 mesh_center;
+varying vec2 vUv;
+uniform vec3 meshCenter;
+varying vec2 clipMeshCenter;
+uniform float time;
+varying vec2 glPos;
 
-varying float v_time_norm;
-varying vec2 geom2d;
 void main() {
-    vec4 geom4d = projectionMatrix * modelViewMatrix * vec4(mesh_center, 1.0);
-    vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-
-    vec4 delta4d = clipPos - geom4d;
-    geom2d = delta4d.xy;
-
-    v_time_norm = fract(u_time / 5.0);
-    gl_Position = clipPos;
+    clipMeshCenter = (projectionMatrix * modelViewMatrix * vec4(meshCenter, 1.0)).xy;
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vUv = gl_Position.xy / gl_Position.w;
+    vUv = (vUv + 1.0) * 0.5;
+    glPos = gl_Position.xy;
 }
-

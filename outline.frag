@@ -1,31 +1,63 @@
-varying vec2 geom2d;
-varying float v_time_norm;
-const float PI = 3.1415926535897932384626433832795;
+varying vec2 vUv;
+varying vec2 clipMeshCenter;
+varying vec2 glPos;
+
+uniform float time;
+uniform vec2 viewportSize;
+
+#define LINE_WEIGHT 2.0
+
+uniform sampler2D gbufferMask; //the object red and bg black or transparent
+
 void main() {
-    float tangent = geom2d.y / geom2d.x;
-    float varying_red = abs(atan(tangent) * 2. / PI) * 0.25;
-    if (tangent < 0.0) {
-        // we're either in the second or the fourth quadrant
-        varying_red = 0.25 - varying_red;
-    }
+   float dx = (1.0 / viewportSize.x) * LINE_WEIGHT;
+   float dy = (1.0 / viewportSize.y) * LINE_WEIGHT;
 
-    if (geom2d.y > 0.0 && geom2d.x < 0.0) {
-        // second quadrant
-        varying_red += 0.25;
-    }
+   vec2 uvCenter   = vUv;
+   vec2 uvRight    = vec2(uvCenter.x + dx, uvCenter.y);
+   vec2 uvLeft    = vec2(uvCenter.x - dx, uvCenter.y);
+   vec2 uvTop      = vec2(uvCenter.x,      uvCenter.y - dy);
+   vec2 uvTopRight = vec2(uvCenter.x + dx, uvCenter.y - dy);
+   vec2 uvDown      = vec2(uvCenter.x,      uvCenter.y + dy);
+   vec2 uvDownLeft = vec2(uvCenter.x - dx, uvCenter.y + dy);
 
-    if (geom2d.y < 0.0 && geom2d.x < 0.0) {
-        // third quadrant
-        varying_red += 0.5;
-    }
+   float mCenter   = texture(gbufferMask, uvCenter).r;
+   float mTop      = texture(gbufferMask, uvTop).r;
+   float mRight    = texture(gbufferMask, uvRight).r;
+   float mTopRight = texture(gbufferMask, uvTopRight).r;
+   float mLeft    = texture(gbufferMask, uvLeft).r;
+   float mDown    = texture(gbufferMask, uvDown).r;
+   float mDownLeft = texture(gbufferMask, uvDownLeft).r;
 
-    if (geom2d.y < 0.0 && geom2d.x > 0.0) {
-        // fourth quadrant
-        varying_red += 0.75;
-    }
+   float dT  = abs(mCenter - mTop);
+   float dR  = abs(mCenter - mRight);
+   float dTR = abs(mCenter - mTopRight);
+   float dD  = abs(mCenter - mDown);
+   float dL  = abs(mCenter - mLeft);
+   float dDL = abs(mCenter - mDownLeft);
 
-    varying_red = fract(varying_red - v_time_norm);
+   float delta = 0.0;
+   delta = max(delta, dT);
+   delta = max(delta, dR);
+   delta = max(delta, dTR);
+   delta = max(delta, dD);
+   delta = max(delta, dL);
+   delta = max(delta, dDL);
 
-    gl_FragColor = vec4(varying_red, 0.8, 0.4, 1.0);
+
+
+   float threshold = 0.0;
+   float deltaClipped = clamp((delta * 2.0) - threshold, 0.0, 1.0);
+
+   vec2 fromOrigin = glPos - clipMeshCenter;
+   // angle, normalized to the range [0, 1]
+   float angle = atan(fromOrigin.y, fromOrigin.x) / (2.0 * 3.141592653589793);
+   if (angle < 0. && fromOrigin.y < 0.) {
+      angle += 1.;
+   }
+   float pct = fract(time * .5);
+   float angleThres = angle < pct ? 1.0: 0.0;
+
+   vec4 outline = vec4(vec3(deltaClipped * angleThres), 1.0);
+   gl_FragColor = outline;
 }
-
