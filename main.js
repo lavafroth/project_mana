@@ -32,7 +32,7 @@ var buffer = new THREE.WebGLRenderTarget(width, height, {
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.update();
 
-const geometry = new THREE.BoxGeometry(2, 2, 2);
+const geometry = new THREE.TorusGeometry( 10, 3, 16, 100 );
 geometry.translate(2, 2, 2);
 
 const shadowMesh = new THREE.Mesh(
