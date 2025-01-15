@@ -15,6 +15,7 @@ async function get(path) {
 const scene = new THREE.Scene();
 const solidScene = new THREE.Scene();
 const maskScene = new THREE.Scene();
+const evolveScene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 45, width / height, 0.1, 1000 );
 const color = 0xFFFFFF;
 var light = new THREE.AmbientLight(color, 1);
@@ -26,6 +27,7 @@ camera.position.set(6,8,14);
 
 var buffer = new THREE.WebGLRenderTarget(width, height, {format: THREE.RGBAFormat, type: THREE.FloatType})
 var outlineBuffer = new THREE.WebGLRenderTarget(width, height, {format: THREE.RGBAFormat, type: THREE.FloatType})
+var transientBuffer = new THREE.WebGLRenderTarget(width, height, {format: THREE.RGBAFormat, type: THREE.FloatType})
 
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.update();
@@ -69,6 +71,27 @@ const mesh = new THREE.Mesh(
 solidScene.add(solidMesh);
 scene.add(mesh);
 maskScene.add(shadowMesh);
+
+
+const evoUniforms = {
+    gbufferMask: { value: outlineBuffer.texture },
+    initBufferMask: { value: new Float32Array(width * height * 4) },
+    viewportSize: { value: new THREE.Vector2(width, height) },
+}
+
+const evoMaterial = new THREE.ShaderMaterial({
+    vertexShader: await get('evolve.vert'),
+    fragmentShader: await get('evolve.frag'),
+    uniforms: evoUniforms,
+    transparent: true,
+});
+
+const evolveMesh = new THREE.Mesh(
+    geometry,
+    evoMaterial
+);
+
+evolveScene.add(evolveMesh)
 
 function continuity(bitmap, width, height) {
     const visited = Array.from({length: height}, () => Array(width).fill(false));
@@ -114,10 +137,6 @@ function continuity(bitmap, width, height) {
             Number(valid(row + 1, col + 1))
         )
 
-        // if (Math.abs(row - rootRow) < 2 && Math.abs(col - rootCol) < 2) {
-        //     return 1;
-        // }
-
         // for a point to be on the screen edge, it must have at least three
         // of its neighbors invalid
         if (amISentinel < 6) {
@@ -135,8 +154,10 @@ function continuity(bitmap, width, height) {
         }
     }
 
-    console.log(cyclic)
+    return cyclic.concat(sentinels);
 }
+
+var init = true;
 
 const clock = new THREE.Clock();
 function animate() {
@@ -150,31 +171,39 @@ function animate() {
     renderer.render(scene, camera);
 
     const allThePixels = new Float32Array( buffer.width * buffer.height * 4);
+    if (init) {
+        renderer.readRenderTargetPixels( outlineBuffer, 0, 0, buffer.width, buffer.height, allThePixels);
 
-    var litPixels = 0;
-    renderer.readRenderTargetPixels( outlineBuffer, 0, 0, buffer.width, buffer.height, allThePixels);
+    		let points = continuity(allThePixels, width, height)
+    		console.log(points)
+        let initBuffer = new Uint8Array(buffer.width * buffer.height * 4);
+        points.forEach((point) => {
+            let pos = 4 * (point[0] * buffer.width + point[1]);
+            initBuffer[pos] = 255;
+            initBuffer[pos+1] = 255;
+            initBuffer[pos+2] = 255;
+            initBuffer[pos+3] = 255;
+        })
 
-    // var pixel;
-  //    for (let y = 0; y < buffer.height; y++) {
-  //       for (let x = 0; x < buffer.width; x++) {
-  //          var at = 4 * (y * buffer.width + x);
-  //          // console.log(`${x}, ${y}`);
-  //    	    const isLit = allThePixels[at] == 1 && allThePixels[at+1] == 1 && allThePixels[at+2] == 1 && allThePixels[at+3] == 1
-  //       		if (isLit) {
-  //       		    litPixels += 1;
-  //       		}
-  //       }
-  //    }
-    
-		// console.log(litPixels);
-		continuity(allThePixels, width, height)
-
+        let ephemeralTex = new THREE.DataTexture(initBuffer, width, height);
+        ephemeralTex.needsUpdate = true;
+        evoUniforms.initBufferMask.value = ephemeralTex;
+        init = false;
+    } else {
+        renderer.setRenderTarget(transientBuffer);
+        renderer.render(evolveScene, camera);
+        var sink = new Float32Array(buffer.width * buffer.height * 4);
+        renderer.readRenderTargetPixels(transientBuffer, 0, 0, buffer.width, buffer.height, sink);
+        let ephemeralTex = new THREE.DataTexture(sink, width, height, THREE.RGBAFormat, THREE.FloatType);
+        ephemeralTex.needsUpdate = true;
+        evoUniforms.initBufferMask.value = ephemeralTex;
+    }
 
     renderer.setRenderTarget(null);
     renderer.render(solidScene, camera);
     renderer.autoClear = false;
     renderer.clearDepth();
-    renderer.render(scene, camera);
+    renderer.render(evolveScene, camera);
     renderer.autoClear = true;
 }
 
