@@ -7,7 +7,7 @@ uniform vec2 viewportSize;
 
 #define LINE_WEIGHT 2.0
 
-uniform sampler2D gbufferMask; //the object red and bg black or transparent
+uniform sampler2D gbufferMask;
 
 void main() {
    float dx = (1.0 / viewportSize.x) * LINE_WEIGHT;
@@ -55,9 +55,9 @@ void main() {
    if (angle < 0. && fromOrigin.y < 0.) {
       angle += 1.;
    }
-   float pct = fract(time * .5);
-   float angleThres = angle < pct ? 1.0: 0.0;
-   float isOutline = deltaClipped * angleThres;
+   // float pct = fract(time * .5);
+   // float angleThres = angle < pct ? 1.0: 0.0;
+   float isOutline = deltaClipped;
 
    vec4 outline = vec4(vec3(isOutline), isOutline);
    gl_FragColor = outline;
