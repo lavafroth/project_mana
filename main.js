@@ -74,6 +74,7 @@ maskScene.add(shadowMesh);
 
 
 const evoUniforms = {
+    window: {value: 0},
     gbufferMask: { value: outlineBuffer.texture },
     initBufferMask: { value: new Float32Array(width * height * 4) },
     viewportSize: { value: new THREE.Vector2(width, height) },
@@ -100,31 +101,10 @@ function continuity(bitmap, width, height) {
         return row >= 0 && row < height && col >= 0 && col <= width
     }
 
-    var sentinels = [];
-    var cyclic = [];
-
-    function dfs(row, col, rootRow, rootCol, steps) {
-
-        if (steps > 20 && row == rootRow && col == rootCol) {
-            
-            cyclic.push([row, col]);
-        }
-
-        if (!valid(row, col) || visited[row][col]) {
-            return 1; // is this a sentinel point
-        }
-        var point = 4 * (row * width + col);
-        if (bitmap[point+0] == 0 && bitmap[point+1] == 0 && bitmap[point+2] == 0) {
-            return 0;
-        }
-
-        visited[row][col] = true;
-        dfs(row - 1, col, rootRow, rootCol, steps + 1)
-        dfs(row + 1, col, rootRow, rootCol, steps + 1)
-        dfs(row, col - 1, rootRow, rootCol, steps + 1)
-        dfs(row, col + 1, rootRow, rootCol, steps + 1)
-
-        var amISentinel = (
+    // for a point to be on the screen edge, it must have at least three
+    // of its neighbors invalid
+    function isSentinel(row, col) {
+        return (
             Number(valid(row - 1, col - 1)) +
             Number(valid(row - 1, col)) +
             Number(valid(row - 1, col + 1)) +
@@ -135,14 +115,49 @@ function continuity(bitmap, width, height) {
             Number(valid(row + 1, col - 1)) +
             Number(valid(row + 1, col)) +
             Number(valid(row + 1, col + 1))
-        )
+        ) < 6
+    }
 
-        // for a point to be on the screen edge, it must have at least three
-        // of its neighbors invalid
-        if (amISentinel < 6) {
-            sentinels.push([row, col]);
+    var sentinels = [];
+    var cyclic = [];
+    var duration = 0;
+
+    function dfs(row, col, rootRow, rootCol, steps) {
+
+        const pointIsRoot = row == rootRow && col == rootCol;
+        const pointIsSentinel = isSentinel(row, col);
+
+        if (steps > 20 && pointIsRoot) {
+            
+            cyclic.push([row, col]);
+            return;
         }
-        return 0;
+
+        if (!valid(row, col) || visited[row][col]) {
+            return; // is this a sentinel point
+        }
+        var point = 4 * (row * width + col);
+        if (bitmap[point+0] == 0 && bitmap[point+1] == 0 && bitmap[point+2] == 0) {
+            return;
+        }
+
+        visited[row][col] = true;
+        dfs(row - 1, col, rootRow, rootCol, steps + 1)
+        dfs(row + 1, col, rootRow, rootCol, steps + 1)
+        dfs(row, col - 1, rootRow, rootCol, steps + 1)
+        dfs(row, col + 1, rootRow, rootCol, steps + 1)
+
+        if (!pointIsRoot && pointIsSentinel && steps > 20) {
+            if (isSentinel(rootRow, rootCol)) {
+                duration = duration > steps ? duration : steps;
+
+                sentinels.push([row, col]);
+            } else {
+
+                sentinels.push([row, col]);
+            }
+        }
+        return;
     }
 
     for (let row = 0; row < height; row++) {
@@ -154,10 +169,13 @@ function continuity(bitmap, width, height) {
         }
     }
 
-    return cyclic.concat(sentinels);
+    return [cyclic.concat(sentinels), duration];
 }
 
 var init = true;
+
+var durationInSeconds = 5;
+const FPS = 30;
 
 const clock = new THREE.Clock();
 function animate() {
@@ -174,8 +192,11 @@ function animate() {
     if (init) {
         renderer.readRenderTargetPixels( outlineBuffer, 0, 0, buffer.width, buffer.height, allThePixels);
 
-    		let points = continuity(allThePixels, width, height)
-    		console.log(points)
+    		let [points, duration] = continuity(allThePixels, width, height)
+    		let pixelPerFrame = duration / durationInSeconds / FPS;
+    		evoUniforms.window.value = 20;
+    		console.log(Math.round(pixelPerFrame))
+
         let initBuffer = new Uint8Array(buffer.width * buffer.height * 4);
         points.forEach((point) => {
             let pos = 4 * (point[0] * buffer.width + point[1]);

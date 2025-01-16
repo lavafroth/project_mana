@@ -1,7 +1,7 @@
 varying vec2 vUv;
 uniform vec3 meshCenter;
 varying vec2 clipMeshCenter;
-uniform float time;
+uniform int window;
 varying vec2 glPos;
 
 void main() {
