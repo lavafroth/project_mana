@@ -175,9 +175,41 @@ function continuity(bitmap, width, height) {
 var init = true;
 
 var durationInSeconds = 5;
-const FPS = 30;
+
+// @param {Float32Array[]} points
+// @param {Float32Array} allThePixels
+function dijkstraNumber(points, allThePixels) {
+    points.forEach((point) => {
+        dijkstraPropagate(point, allThePixels, 2)
+    })
+}
+
+function dijkstraPropagate(point, allThePixels, value) {
+    let row = point[0]
+    let col = point[1]
+    let pos = 4 * (row * buffer.width + col);
+    if (allThePixels[pos] != 1) {
+        return
+    }
+    // propagate
+    allThePixels[pos] = value;
+    allThePixels[pos+1] = value;
+    allThePixels[pos+2] = value;
+    allThePixels[pos+3] = value;
+
+    dijkstraPropagate([row - 1, col], allThePixels, value+1);
+    dijkstraPropagate([row + 1, col], allThePixels, value+1);
+    dijkstraPropagate([row, col - 1], allThePixels, value+1);
+    dijkstraPropagate([row, col + 1], allThePixels, value+1);
+    dijkstraPropagate([row - 1, col - 1], allThePixels, value+1);
+    dijkstraPropagate([row + 1, col + 1], allThePixels, value+1);
+    dijkstraPropagate([row + 1, col - 1], allThePixels, value+1);
+    dijkstraPropagate([row - 1, col + 1], allThePixels, value+1);
+}
 
 const clock = new THREE.Clock();
+var longestPixelStrand = 0;
+const allThePixels = new Float32Array( buffer.width * buffer.height * 4);
 function animate() {
 
     uniforms.time.value = clock.getElapsedTime();
@@ -188,14 +220,19 @@ function animate() {
     renderer.setRenderTarget(outlineBuffer);
     renderer.render(scene, camera);
 
-    const allThePixels = new Float32Array( buffer.width * buffer.height * 4);
     if (init) {
-        renderer.readRenderTargetPixels( outlineBuffer, 0, 0, buffer.width, buffer.height, allThePixels);
+        renderer.readRenderTargetPixels(outlineBuffer, 0, 0, buffer.width, buffer.height, allThePixels);
 
     		let [points, duration] = continuity(allThePixels, width, height)
-    		let pixelPerFrame = duration / durationInSeconds / FPS;
-    		evoUniforms.window.value = 20;
-    		console.log(Math.round(pixelPerFrame))
+    		let dijkstraBuffer = dijkstraNumber(points, allThePixels)
+
+    		
+        for (let row = 0; row < height; row++) {
+            for(let col=0; col<width; col++) {
+                var point = 4 * (row * width + col);
+                longestPixelStrand = Math.max(longestPixelStrand, allThePixels[point])
+            }
+        }
 
         let initBuffer = new Uint8Array(buffer.width * buffer.height * 4);
         points.forEach((point) => {
@@ -210,15 +247,26 @@ function animate() {
         ephemeralTex.needsUpdate = true;
         evoUniforms.initBufferMask.value = ephemeralTex;
         init = false;
-    } else {
-        renderer.setRenderTarget(transientBuffer);
-        renderer.render(evolveScene, camera);
-        var sink = new Float32Array(buffer.width * buffer.height * 4);
-        renderer.readRenderTargetPixels(transientBuffer, 0, 0, buffer.width, buffer.height, sink);
-        let ephemeralTex = new THREE.DataTexture(sink, width, height, THREE.RGBAFormat, THREE.FloatType);
-        ephemeralTex.needsUpdate = true;
-        evoUniforms.initBufferMask.value = ephemeralTex;
     }
+		let fractionAnimated = (clock.getElapsedTime() % durationInSeconds) / durationInSeconds;
+		let pixelsAnimated = Math.round(longestPixelStrand * fractionAnimated);
+    let initBuffer = new Uint8Array(buffer.width * buffer.height * 4);
+    for (let row = 0; row < height; row++) {
+        for(let col=0; col<width; col++) {
+            var point = 4 * (row * width + col);
+            if (allThePixels[point] > 1 && allThePixels[point] < pixelsAnimated) {
+                // console.log(rawPoint)
+                initBuffer[point] = 255;
+                initBuffer[point+1] = 255;
+                initBuffer[point+2] = 255;
+                initBuffer[point+3] = 255;
+            }
+        }
+    }
+    let ephemeralTex = new THREE.DataTexture(initBuffer, width, height);
+    ephemeralTex.needsUpdate = true;
+    evoUniforms.initBufferMask.value = ephemeralTex;
+		// console.log(pixelsAnimated)
 
     renderer.setRenderTarget(null);
     renderer.render(solidScene, camera);

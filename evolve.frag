@@ -42,17 +42,17 @@ void main() {
       neighbor += texture(initBufferMask, uvDownRight).r;
 
 
-      int windowHalf = window/2;
-      for (int i = -windowHalf; i < windowHalf; i += 1) {
-         for (int j = -windowHalf; j < windowHalf; j += 1) {
-            vec2 texturePoint = vec2(uvCenter.x + float(i) * dx, uvCenter.y + float(j) * dy);
-            kernelBorder += texture(initBufferMask, texturePoint).r;
-         }
-      }
+      // int windowHalf = window/2;
+      // for (int i = -windowHalf; i < windowHalf; i += 1) {
+      //    for (int j = -windowHalf; j < windowHalf; j += 1) {
+      //       vec2 texturePoint = vec2(uvCenter.x + float(i) * dx, uvCenter.y + float(j) * dy);
+      //       kernelBorder += texture(initBufferMask, texturePoint).r;
+      //    }
+      // }
 
-      if (kernelBorder >= 2.0) {
-         neighbor += 1.;
-      }
+      // if (kernelBorder >= 2.0) {
+      //    neighbor += 1.;
+      // }
       float evolve = clamp(neighbor, 0.0, 1.);
       gl_FragColor = vec4(evolve);
    } else {
