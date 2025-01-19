@@ -27,7 +27,6 @@ camera.position.set(6,8,14);
 
 var buffer = new THREE.WebGLRenderTarget(width, height, {format: THREE.RGBAFormat, type: THREE.FloatType})
 var outlineBuffer = new THREE.WebGLRenderTarget(width, height, {format: THREE.RGBAFormat, type: THREE.FloatType})
-var transientBuffer = new THREE.WebGLRenderTarget(width, height, {format: THREE.RGBAFormat, type: THREE.FloatType})
 
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.update();
@@ -36,14 +35,8 @@ const geometry = new THREE.TorusGeometry( 10, 3, 20, 100 );
 geometry.translate(2, 2, 2);
 
 const shadowMesh = new THREE.Mesh(geometry);
-const shadowMeshCenter = new THREE.Vector3();
-shadowMesh.geometry.computeBoundingBox();
-shadowMesh.geometry.boundingBox.getCenter(shadowMeshCenter);
-
 const uniforms = {
-    time: {value: 0.0},
     gbufferMask: { value: buffer.texture },
-    meshCenter: { value: shadowMeshCenter },
     viewportSize: { value: new THREE.Vector2(width, height) },
 }
 
@@ -74,13 +67,11 @@ maskScene.add(shadowMesh);
 
 
 const evoUniforms = {
-    window: {value: 0},
-    gbufferMask: { value: outlineBuffer.texture },
     initBufferMask: { value: new Float32Array(width * height * 4) },
-    viewportSize: { value: new THREE.Vector2(width, height) },
 }
 
 const evoMaterial = new THREE.ShaderMaterial({
+    // this is a copy shader
     vertexShader: await get('evolve.vert'),
     fragmentShader: await get('evolve.frag'),
     uniforms: evoUniforms,
@@ -120,22 +111,24 @@ function continuity(bitmap, width, height) {
 
     var sentinels = [];
     var cyclic = [];
-    var duration = 0;
 
     function dfs(row, col, rootRow, rootCol, steps) {
 
         const pointIsRoot = row == rootRow && col == rootCol;
         const pointIsSentinel = isSentinel(row, col);
 
+        // Just make sure we aren't choosing a point that's too close to the root
+        // itself. Walk about 20 steps. This number was chosen arbitrarily.
         if (steps > 20 && pointIsRoot) {
-            
             cyclic.push([row, col]);
             return;
         }
 
         if (!valid(row, col) || visited[row][col]) {
-            return; // is this a sentinel point
+            return;
         }
+
+        // is this point switched off?
         var point = 4 * (row * width + col);
         if (bitmap[point+0] == 0 && bitmap[point+1] == 0 && bitmap[point+2] == 0) {
             return;
@@ -148,20 +141,13 @@ function continuity(bitmap, width, height) {
         dfs(row, col + 1, rootRow, rootCol, steps + 1)
 
         if (!pointIsRoot && pointIsSentinel && steps > 20) {
-            if (isSentinel(rootRow, rootCol)) {
-                duration = duration > steps ? duration : steps;
-
-                sentinels.push([row, col]);
-            } else {
-
-                sentinels.push([row, col]);
-            }
+            sentinels.push([row, col]);
         }
         return;
     }
 
     for (let row = 0; row < height; row++) {
-        for(let col=0; col<width; col++) {
+        for(let col=0; col < width; col++) {
             var point = 4 * (row * width + col);
             if (!visited[row][col] && bitmap[point+0] == 1 && bitmap[point+1] == 1 && bitmap[point+2] == 1) {
                 dfs(row, col, row, col, 0);
@@ -169,13 +155,19 @@ function continuity(bitmap, width, height) {
         }
     }
 
-    return [cyclic.concat(sentinels), duration];
+    return cyclic.concat(sentinels);
 }
 
 var durationInSeconds = 5;
 
 // @param {Float32Array[]} points
 // @param {Float32Array} allThePixels
+// Number all the points as we stumble along the outline.
+// Akin to a wavefront. The pixels switched on (value = 1)
+// touching the wavefron at time t will have a value t + 2
+//
+// This way we can quickly zero out all the pixels below a
+// threshold when timing the animation.
 function dijkstraNumber(points, allThePixels) {
     points.forEach((point) => {
         dijkstraPropagate(point, allThePixels, 2)
@@ -211,8 +203,6 @@ var init = true;
 const allThePixels = new Float32Array( buffer.width * buffer.height * 4);
 function animate() {
 
-    uniforms.time.value = clock.getElapsedTime();
-
     renderer.setRenderTarget(buffer);
     renderer.render(maskScene, camera);
 
@@ -222,12 +212,11 @@ function animate() {
 
         renderer.readRenderTargetPixels(outlineBuffer, 0, 0, buffer.width, buffer.height, allThePixels);
 
-    		let [points, duration] = continuity(allThePixels, width, height)
+    		let points = continuity(allThePixels, width, height)
     		let dijkstraBuffer = dijkstraNumber(points, allThePixels)
-
     		
         for (let row = 0; row < height; row++) {
-            for(let col=0; col<width; col++) {
+            for(let col = 0; col<width; col++) {
                 var point = 4 * (row * width + col);
                 longestPixelStrand = Math.max(longestPixelStrand, allThePixels[point])
             }
