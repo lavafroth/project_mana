@@ -172,8 +172,6 @@ function continuity(bitmap, width, height) {
     return [cyclic.concat(sentinels), duration];
 }
 
-var init = true;
-
 var durationInSeconds = 5;
 
 // @param {Float32Array[]} points
@@ -209,6 +207,7 @@ function dijkstraPropagate(point, allThePixels, value) {
 
 const clock = new THREE.Clock();
 var longestPixelStrand = 0;
+var init = true;
 const allThePixels = new Float32Array( buffer.width * buffer.height * 4);
 function animate() {
 
@@ -217,10 +216,10 @@ function animate() {
     renderer.setRenderTarget(buffer);
     renderer.render(maskScene, camera);
 
-    renderer.setRenderTarget(outlineBuffer);
-    renderer.render(scene, camera);
-
     if (init) {
+        renderer.setRenderTarget(outlineBuffer);
+        renderer.render(scene, camera);
+
         renderer.readRenderTargetPixels(outlineBuffer, 0, 0, buffer.width, buffer.height, allThePixels);
 
     		let [points, duration] = continuity(allThePixels, width, height)
@@ -255,7 +254,6 @@ function animate() {
         for(let col=0; col<width; col++) {
             var point = 4 * (row * width + col);
             if (allThePixels[point] > 1 && allThePixels[point] < pixelsAnimated) {
-                // console.log(rawPoint)
                 initBuffer[point] = 255;
                 initBuffer[point+1] = 255;
                 initBuffer[point+2] = 255;
@@ -266,7 +264,6 @@ function animate() {
     let ephemeralTex = new THREE.DataTexture(initBuffer, width, height);
     ephemeralTex.needsUpdate = true;
     evoUniforms.initBufferMask.value = ephemeralTex;
-		// console.log(pixelsAnimated)
 
     renderer.setRenderTarget(null);
     renderer.render(solidScene, camera);
@@ -284,4 +281,9 @@ window.addEventListener('resize', function() {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+    init = true;
 });
+
+orbit.addEventListener('change', function() {
+    init = true;
+})
