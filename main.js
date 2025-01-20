@@ -115,7 +115,6 @@ function continuity(bitmap, width, height) {
     function dfs(row, col, rootRow, rootCol, steps) {
 
         const pointIsRoot = row == rootRow && col == rootCol;
-        const pointIsSentinel = isSentinel(row, col);
 
         if (steps != 0 && pointIsRoot) {
             cyclic.push([row, col]);
@@ -138,7 +137,7 @@ function continuity(bitmap, width, height) {
         dfs(row, col - 1, rootRow, rootCol, steps + 1)
         dfs(row, col + 1, rootRow, rootCol, steps + 1)
 
-        if (!pointIsRoot && pointIsSentinel && steps != 0) {
+        if (isSentinel(row, col) && steps != 0) {
             sentinels.push([row, col]);
         }
         return;
