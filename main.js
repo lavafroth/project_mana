@@ -201,10 +201,10 @@ var init = true;
 const allThePixels = new Float32Array( buffer.width * buffer.height * 4);
 function animate() {
 
-    renderer.setRenderTarget(buffer);
-    renderer.render(maskScene, camera);
-
     if (init) {
+        renderer.setRenderTarget(buffer);
+        renderer.render(maskScene, camera);
+
         renderer.setRenderTarget(outlineBuffer);
         renderer.render(scene, camera);
 
