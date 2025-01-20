@@ -117,8 +117,6 @@ function continuity(bitmap, width, height) {
         const pointIsRoot = row == rootRow && col == rootCol;
         const pointIsSentinel = isSentinel(row, col);
 
-        // Just make sure we aren't choosing a point that's too close to the root
-        // itself. Walk about 20 steps. This number was chosen arbitrarily.
         if (steps != 0 && pointIsRoot) {
             cyclic.push([row, col]);
             return;
