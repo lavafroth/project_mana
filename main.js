@@ -67,7 +67,7 @@ maskScene.add(shadowMesh);
 
 
 const evoUniforms = {
-    initBufferMask: { value: new Float32Array(width * height * 4) },
+    initBufferMask: { value: null },
 }
 
 const evoMaterial = new THREE.ShaderMaterial({
