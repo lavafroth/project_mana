@@ -119,7 +119,7 @@ function continuity(bitmap, width, height) {
 
         // Just make sure we aren't choosing a point that's too close to the root
         // itself. Walk about 20 steps. This number was chosen arbitrarily.
-        if (steps > 20 && pointIsRoot) {
+        if (steps != 0 && pointIsRoot) {
             cyclic.push([row, col]);
             return;
         }
@@ -140,7 +140,7 @@ function continuity(bitmap, width, height) {
         dfs(row, col - 1, rootRow, rootCol, steps + 1)
         dfs(row, col + 1, rootRow, rootCol, steps + 1)
 
-        if (!pointIsRoot && pointIsSentinel && steps > 20) {
+        if (!pointIsRoot && pointIsSentinel && steps != 0) {
             sentinels.push([row, col]);
         }
         return;
