@@ -145,8 +145,11 @@ function continuity(bitmap, width, height) {
 
     for (let row = 0; row < height; row++) {
         for(let col=0; col < width; col++) {
+            if (visited[row][col]) {
+                continue;
+            }
             var point = 4 * (row * width + col);
-            if (!visited[row][col] && bitmap[point+0] == 1 && bitmap[point+1] == 1 && bitmap[point+2] == 1) {
+            if (bitmap[point] == 1 && bitmap[point+1] == 1 && bitmap[point+2] == 1) {
                 dfs(row, col, row, col, 0);
             }
         }
