@@ -25,8 +25,8 @@ light.position.set(10, 10, 15);
 solidScene.add(light);
 camera.position.set(6,8,14);
 
-var buffer = new THREE.WebGLRenderTarget(width, height, {format: THREE.RGBAFormat, type: THREE.FloatType})
-var outlineBuffer = new THREE.WebGLRenderTarget(width, height, {format: THREE.RGBAFormat, type: THREE.FloatType})
+var buffer = new THREE.WebGLRenderTarget(width, height, {format: THREE.RGBAFormat})
+var outlineBuffer = new THREE.WebGLRenderTarget(width, height, {format: THREE.RGBAFormat})
 
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.update();
@@ -168,39 +168,40 @@ var durationInSeconds = 5;
 //
 // This way we can quickly zero out all the pixels below a
 // threshold when timing the animation.
-function dijkstraNumber(points, allThePixels) {
+function dijkstraNumber(points, buf) {
     points.forEach((point) => {
-        dijkstraPropagate(point, allThePixels, 2)
+        dijkstraPropagate(point, buf, 2)
     })
 }
 
-function dijkstraPropagate(point, allThePixels, value) {
+function dijkstraPropagate(point, buf, value) {
     let row = point[0]
     let col = point[1]
     let pos = 4 * (row * buffer.width + col);
-    if (allThePixels[pos] != 1) {
+    if (buf[pos] != 1) {
         return
     }
     // propagate
-    allThePixels[pos] = value;
-    allThePixels[pos+1] = value;
-    allThePixels[pos+2] = value;
-    allThePixels[pos+3] = value;
+    buf[pos] = value;
+    buf[pos+1] = value;
+    buf[pos+2] = value;
+    buf[pos+3] = value;
 
-    dijkstraPropagate([row - 1, col], allThePixels, value+1);
-    dijkstraPropagate([row + 1, col], allThePixels, value+1);
-    dijkstraPropagate([row, col - 1], allThePixels, value+1);
-    dijkstraPropagate([row, col + 1], allThePixels, value+1);
-    dijkstraPropagate([row - 1, col - 1], allThePixels, value+1);
-    dijkstraPropagate([row + 1, col + 1], allThePixels, value+1);
-    dijkstraPropagate([row + 1, col - 1], allThePixels, value+1);
-    dijkstraPropagate([row - 1, col + 1], allThePixels, value+1);
+    dijkstraPropagate([row - 1, col], buf, value+1);
+    dijkstraPropagate([row + 1, col], buf, value+1);
+    dijkstraPropagate([row, col - 1], buf, value+1);
+    dijkstraPropagate([row, col + 1], buf, value+1);
+    dijkstraPropagate([row - 1, col - 1], buf, value+1);
+    dijkstraPropagate([row + 1, col + 1], buf, value+1);
+    dijkstraPropagate([row + 1, col - 1], buf, value+1);
+    dijkstraPropagate([row - 1, col + 1], buf, value+1);
 }
 
 const clock = new THREE.Clock();
 var longestPixelStrand = 0;
 var init = true;
-const allThePixels = new Float32Array( buffer.width * buffer.height * 4);
+const allThePixels = new Uint8Array(buffer.width * buffer.height * 4);
+const dijkstraBuffer = new Float32Array(buffer.width * buffer.height * 4);
 function animate() {
 
     if (init) {
@@ -211,14 +212,17 @@ function animate() {
         renderer.render(scene, camera);
 
         renderer.readRenderTargetPixels(outlineBuffer, 0, 0, buffer.width, buffer.height, allThePixels);
+        for (let i = 0; i < allThePixels.length; i++) {
+            dijkstraBuffer[i] = allThePixels[i] == 255 ? 1 : 0;
+        }
 
-    		let points = continuity(allThePixels, width, height)
-    		let dijkstraBuffer = dijkstraNumber(points, allThePixels)
+    		let points = continuity(dijkstraBuffer, width, height)
+    		dijkstraNumber(points, dijkstraBuffer)
     		
         for (let row = 0; row < height; row++) {
             for(let col = 0; col<width; col++) {
                 var point = 4 * (row * width + col);
-                longestPixelStrand = Math.max(longestPixelStrand, allThePixels[point])
+                longestPixelStrand = Math.max(longestPixelStrand, dijkstraBuffer[point])
             }
         }
 
@@ -242,7 +246,7 @@ function animate() {
     for (let row = 0; row < height; row++) {
         for(let col=0; col<width; col++) {
             var point = 4 * (row * width + col);
-            if (allThePixels[point] > 1 && allThePixels[point] < pixelsAnimated) {
+            if (dijkstraBuffer[point] > 1 && dijkstraBuffer[point] < pixelsAnimated) {
                 initBuffer[point] = 255;
                 initBuffer[point+1] = 255;
                 initBuffer[point+2] = 255;
