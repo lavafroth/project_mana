@@ -164,7 +164,7 @@ var durationInSeconds = 5;
 // @param {Float32Array} allThePixels
 // Number all the points as we stumble along the outline.
 // Akin to a wavefront. The pixels switched on (value = 1)
-// touching the wavefron at time t will have a value t + 2
+// touching the wavefront at time t will have a value t + 2
 //
 // This way we can quickly zero out all the pixels below a
 // threshold when timing the animation.
