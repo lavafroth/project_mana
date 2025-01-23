@@ -7,7 +7,7 @@ uniform vec2 viewportSize;
 
 #define LINE_WEIGHT 2.0
 
-uniform sampler2D gbufferMask; //the object red and bg black or transparent
+uniform sampler2D gbufferMask;
 
 void main() {
    float dx = (1.0 / viewportSize.x) * LINE_WEIGHT;
@@ -44,21 +44,9 @@ void main() {
    delta = max(delta, dL);
    delta = max(delta, dDL);
 
-
-
    float threshold = 0.0;
-   float deltaClipped = clamp((delta * 2.0) - threshold, 0.0, 1.0);
+   float isOutline = clamp((delta * 2.0) - threshold, 0.0, 1.0);
 
-   vec2 fromOrigin = glPos - clipMeshCenter;
-   // angle, normalized to the range [0, 1]
-   float angle = atan(fromOrigin.y, fromOrigin.x) / (2.0 * 3.141592653589793);
-   if (angle < 0. && fromOrigin.y < 0.) {
-      angle += 1.;
-   }
-   float pct = fract(time * .5);
-   float angleThres = angle < pct ? 1.0: 0.0;
-   float isOutline = deltaClipped * angleThres;
-
-   vec4 outline = vec4(vec3(isOutline), isOutline);
+   vec4 outline = vec4(isOutline);
    gl_FragColor = outline;
 }
