@@ -1,7 +1,14 @@
 # PROJECT_MANA
 
-A high level live 3D animation library aiming to be the spiritual successor of Manim.
+A high level live 3D animation library.
+The spiritual successor of Manim.
 
-Currently, I'm recreating the `Write` animation using GL shaders. Here's how it looks so far:
+[Live demo](https://lavafroth.is-a.dev/post/project-mana-demo/)
 
-![A preview of writing the outline of a torus](./assets/preview.gif)
+## Features implemented
+
+The following three animations are ones I consider the pillars of what made Manim great.
+
+- [x] Write
+- [ ] Transform
+- [ ] apply_function (applying a numpy function)
