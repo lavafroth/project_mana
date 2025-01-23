@@ -211,7 +211,7 @@ const clock = new THREE.Clock();
 var longestPixelStrand = 0;
 var init = true;
 const allThePixels = new Uint8Array(buffer.width * buffer.height * 4);
-const dijkstraBuffer = new Float32Array(buffer.width * buffer.height * 4);
+const dijkstraBuffer = new Uint32Array(buffer.width * buffer.height * 4);
 function animate() {
 
     if (init) {
