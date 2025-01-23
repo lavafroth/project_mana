@@ -16,7 +16,7 @@ const scene = new THREE.Scene();
 const solidScene = new THREE.Scene();
 const maskScene = new THREE.Scene();
 const evolveScene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 45, width / height, 0.1, 1000 );
+const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
 const color = 0xFFFFFF;
 var light = new THREE.AmbientLight(color, 1);
 solidScene.add(light);
@@ -92,65 +92,75 @@ function continuity(bitmap, width, height) {
         return row >= 0 && row < height && col >= 0 && col <= width
     }
 
+    function valid_1(row, col) {
+        return valid(row, col) ? 1 : 0
+    }
+
     // for a point to be on the screen edge, it must have at least three
     // of its neighbors invalid
     function isSentinel(row, col) {
         return (
-            Number(valid(row - 1, col - 1)) +
-            Number(valid(row - 1, col)) +
-            Number(valid(row - 1, col + 1)) +
+            valid_1(row - 1, col - 1) +
+            valid_1(row - 1, col) +
+            valid_1(row - 1, col + 1) +
 
-            Number(valid(row, col - 1)) +
-            Number(valid(row, col + 1)) +
+            valid_1(row, col - 1) +
+            valid_1(row, col + 1) +
 
-            Number(valid(row + 1, col - 1)) +
-            Number(valid(row + 1, col)) +
-            Number(valid(row + 1, col + 1))
+            valid_1(row + 1, col - 1) +
+            valid_1(row + 1, col) +
+            valid_1(row + 1, col + 1)
         ) < 6
     }
 
     var sentinels = [];
     var cyclic = [];
 
-    function dfs(row, col, rootRow, rootCol, steps) {
+    function dfs_queue(rootRow, rootCol) {
+        var stack = [];
+        stack.push([rootRow, rootCol]);
 
-        const pointIsRoot = row == rootRow && col == rootCol;
+        var steps = 0;
 
-        if (steps != 0 && pointIsRoot) {
-            cyclic.push([row, col]);
-            return;
+        for(let [row, col] = stack.pop(); stack.length > -1; steps++) {
+
+            const pointIsRoot = row == rootRow && col == rootCol;
+
+            if (steps != 0 && pointIsRoot) {
+                cyclic.push([row, col]);
+                return;
+            }
+
+            if (!valid(row, col) || visited[row][col]) {
+                return;
+            }
+
+            // is this point switched off?
+            visited[row][col] = true;
+            var point = 4 * (row * width + col);
+            if (bitmap[point+0] == 0 && bitmap[point+1] == 0 && bitmap[point+2] == 0) {
+                return;
+            }
+
+            stack.push([row - 1, col])
+            stack.push([row + 1, col])
+            stack.push([row, col - 1])
+            stack.push([row, col + 1])
+
+            if (isSentinel(row, col) && steps != 0) {
+                sentinels.push([row, col]);
+            }
         }
-
-        if (!valid(row, col) || visited[row][col]) {
-            return;
-        }
-
-        // is this point switched off?
-        var point = 4 * (row * width + col);
-        if (bitmap[point+0] == 0 && bitmap[point+1] == 0 && bitmap[point+2] == 0) {
-            return;
-        }
-
-        visited[row][col] = true;
-        dfs(row - 1, col, rootRow, rootCol, steps + 1)
-        dfs(row + 1, col, rootRow, rootCol, steps + 1)
-        dfs(row, col - 1, rootRow, rootCol, steps + 1)
-        dfs(row, col + 1, rootRow, rootCol, steps + 1)
-
-        if (isSentinel(row, col) && steps != 0) {
-            sentinels.push([row, col]);
-        }
-        return;
     }
 
     for (let row = 0; row < height; row++) {
-        for(let col=0; col < width; col++) {
+        for(let col = 0; col < width; col++) {
             if (visited[row][col]) {
                 continue;
             }
             var point = 4 * (row * width + col);
             if (bitmap[point] == 1 && bitmap[point+1] == 1 && bitmap[point+2] == 1) {
-                dfs(row, col, row, col, 0);
+                dfs_queue(row, col);
             }
         }
     }
@@ -161,7 +171,7 @@ function continuity(bitmap, width, height) {
 var durationInSeconds = 5;
 
 // @param {Float32Array[]} points
-// @param {Float32Array} allThePixels
+// @param {Uint32Array} allThePixels
 // Number all the points as we stumble along the outline.
 // Akin to a wavefront. The pixels switched on (value = 1)
 // touching the wavefront at time t will have a value t + 2
