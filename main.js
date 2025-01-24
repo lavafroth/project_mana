@@ -96,8 +96,8 @@ function continuity(bitmap, width, height) {
         return valid(row, col) ? 1 : 0
     }
 
-    // for a point to be on the screen edge, it must have at least three
-    // of its neighbors invalid
+    // for a point to be on the screen edge, it must have at least three invalid neighbors.
+    // It must have at least six valid neighbors.
     function isSentinel(row, col) {
         return (
             valid_1(row - 1, col - 1) +
@@ -124,32 +124,36 @@ function continuity(bitmap, width, height) {
 
         for(let [row, col] = stack.pop(); stack.length > -1; steps++) {
 
-            const pointIsRoot = row == rootRow && col == rootCol;
+            if (isSentinel(row, col)) {
+                sentinels.push([row, col]);
+                return
+            }
 
-            if (steps != 0 && pointIsRoot) {
-                cyclic.push([row, col]);
-                return;
+            if (steps > 0 && row == rootRow && col == rootCol) {
+                cyclic.push([row, col])
+                return
             }
 
             if (!valid(row, col) || visited[row][col]) {
-                return;
+                return
             }
 
             // is this point switched off?
             visited[row][col] = true;
             var point = 4 * (row * width + col);
-            if (bitmap[point+0] == 0 && bitmap[point+1] == 0 && bitmap[point+2] == 0) {
-                return;
+            if (bitmap[point] == 0 && bitmap[point+1] == 0 && bitmap[point+2] == 0) {
+                continue;
             }
 
-            stack.push([row - 1, col])
             stack.push([row + 1, col])
-            stack.push([row, col - 1])
+            // stack.push([row + 1, col + 1])
             stack.push([row, col + 1])
+            // stack.push([row - 1, col + 1])
+            stack.push([row - 1, col])
+            // stack.push([row - 1, col - 1])
+            stack.push([row, col - 1])
+            // stack.push([row + 1, col - 1])
 
-            if (isSentinel(row, col) && steps != 0) {
-                sentinels.push([row, col]);
-            }
         }
     }
 
@@ -165,7 +169,12 @@ function continuity(bitmap, width, height) {
         }
     }
 
-    return cyclic.concat(sentinels);
+    // Always prefer the sentinels to the cyclics
+    // since walking back a line also ends up in a cycle.
+    // Start waveforms from the sentinels (endpoints),
+    // mark all the visited points. If there remain unvisited
+    // points, those are legitimately parts of cyclic paths.
+    return sentinels.concat(cyclic);
 }
 
 var durationInSeconds = 5;
