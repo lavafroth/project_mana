@@ -201,7 +201,7 @@ function dijkstraNumber(points, buf) {
 
 function dijkstraPropagate(point, buf, value) {
     var queue = [[point]];
-    for (; ; value ++) {
+    for (; ;) {
         let neighbors = queue.pop()
         if (neighbors === undefined) {
             return value
@@ -216,6 +216,7 @@ function dijkstraPropagate(point, buf, value) {
             buf[pos+1] = value;
             buf[pos+2] = value;
             buf[pos+3] = value;
+            value += 1
 
             // package all the neighboring points and
             // push them onto the stack
