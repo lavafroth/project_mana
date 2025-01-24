@@ -122,8 +122,12 @@ function continuity(bitmap, width, height) {
 
         var steps = 0;
 
-        for(let [row, col] = stack.pop(); stack.length > -1; steps++) {
-
+        for(; ; steps++) {
+            let p = stack.pop();
+            if (p === undefined) {
+                return
+            }
+            let [row, col] = p
             if (isSentinel(row, col)) {
                 sentinels.push([row, col]);
                 return
@@ -188,32 +192,45 @@ var durationInSeconds = 5;
 // This way we can quickly zero out all the pixels below a
 // threshold when timing the animation.
 function dijkstraNumber(points, buf) {
+    var longestStrand = 2;
     points.forEach((point) => {
-        dijkstraPropagate(point, buf, 2)
+        longestStrand = Math.max(longestStrand, dijkstraPropagate(point, buf, 2))
     })
+    return longestStrand
 }
 
 function dijkstraPropagate(point, buf, value) {
-    let row = point[0]
-    let col = point[1]
-    let pos = 4 * (row * buffer.width + col);
-    if (buf[pos] != 1) {
-        return
-    }
-    // propagate
-    buf[pos] = value;
-    buf[pos+1] = value;
-    buf[pos+2] = value;
-    buf[pos+3] = value;
+    var queue = [[point]];
+    for (; ; value ++) {
+        let neighbors = queue.pop()
+        if (neighbors === undefined) {
+            return value
+        }
+        neighbors.forEach(([row, col]) => {
+            let pos = 4 * (row * buffer.width + col);
+            if (buf[pos] != 1) {
+                return
+            }
 
-    dijkstraPropagate([row - 1, col], buf, value+1);
-    dijkstraPropagate([row + 1, col], buf, value+1);
-    dijkstraPropagate([row, col - 1], buf, value+1);
-    dijkstraPropagate([row, col + 1], buf, value+1);
-    dijkstraPropagate([row - 1, col - 1], buf, value+1);
-    dijkstraPropagate([row + 1, col + 1], buf, value+1);
-    dijkstraPropagate([row + 1, col - 1], buf, value+1);
-    dijkstraPropagate([row - 1, col + 1], buf, value+1);
+            buf[pos] = value;
+            buf[pos+1] = value;
+            buf[pos+2] = value;
+            buf[pos+3] = value;
+
+            // package all the neighboring points and
+            // push them onto the stack
+            queue.push([
+                [row + 1, col],
+                [row + 1, col + 1],
+                [row, col + 1],
+                [row - 1, col + 1],
+                [row - 1, col],
+                [row - 1, col - 1],
+                [row, col - 1],
+                [row + 1, col - 1]
+            ])
+        })
+    }
 }
 
 const clock = new THREE.Clock();
@@ -236,14 +253,7 @@ function animate() {
         }
 
     		let points = continuity(dijkstraBuffer, width, height)
-    		dijkstraNumber(points, dijkstraBuffer)
-    		
-        for (let row = 0; row < height; row++) {
-            for(let col = 0; col<width; col++) {
-                var point = 4 * (row * width + col);
-                longestPixelStrand = Math.max(longestPixelStrand, dijkstraBuffer[point])
-            }
-        }
+    		longestPixelStrand = dijkstraNumber(points, dijkstraBuffer)
 
         let initBuffer = new Uint8Array(buffer.width * buffer.height * 4);
         points.forEach((point) => {
