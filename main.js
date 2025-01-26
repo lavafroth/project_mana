@@ -85,33 +85,42 @@ const evolveMesh = new THREE.Mesh(
 
 evolveScene.add(evolveMesh)
 
+// all neighbors in a 1 pixel radius
+function pixelNeighbors(row, col) {
+    return [
+        [row + 1, col],
+        [row + 1, col + 1],
+        [row, col + 1],
+        [row - 1, col + 1],
+        [row - 1, col],
+        [row - 1, col - 1],
+        [row, col - 1],
+        [row + 1, col - 1]
+    ]
+}
+
+// true if a pixel's coordinates are in bounds
+function valid(row, col) {
+    return row >= 0 && row < height && col >= 0 && col <= width
+}
+
+function valid_1(row, col) {
+    return valid(row, col) ? 1 : 0
+}
+
+// for a point to be on the screen edge, it must have at least three invalid neighbors.
+// It must have at least six valid neighbors.
+function isSentinel(row, col) {
+    var validNeighbors = 0
+    for (const [y, x] of pixelNeighbors(row, col)) {
+        validNeighbors += valid_1(y, x)
+    }
+    return validNeighbors < 6
+}
+
+
 function continuity(bitmap, width, height) {
     const visited = Array.from({length: height}, () => Array(width).fill(false));
-
-    function valid(row, col) {
-        return row >= 0 && row < height && col >= 0 && col <= width
-    }
-
-    function valid_1(row, col) {
-        return valid(row, col) ? 1 : 0
-    }
-
-    // for a point to be on the screen edge, it must have at least three invalid neighbors.
-    // It must have at least six valid neighbors.
-    function isSentinel(row, col) {
-        return (
-            valid_1(row - 1, col - 1) +
-            valid_1(row - 1, col) +
-            valid_1(row - 1, col + 1) +
-
-            valid_1(row, col - 1) +
-            valid_1(row, col + 1) +
-
-            valid_1(row + 1, col - 1) +
-            valid_1(row + 1, col) +
-            valid_1(row + 1, col + 1)
-        ) < 6
-    }
 
     var sentinels = [];
     var cyclic = [];
@@ -142,21 +151,17 @@ function continuity(bitmap, width, height) {
                 return
             }
 
-            // is this point switched off?
             visited[row][col] = true;
             var point = 4 * (row * width + col);
+            // is this point switched off?
             if (bitmap[point] == 0 && bitmap[point+1] == 0 && bitmap[point+2] == 0) {
                 continue;
             }
 
             stack.push([row + 1, col])
-            // stack.push([row + 1, col + 1])
             stack.push([row, col + 1])
-            // stack.push([row - 1, col + 1])
             stack.push([row - 1, col])
-            // stack.push([row - 1, col - 1])
             stack.push([row, col - 1])
-            // stack.push([row + 1, col - 1])
 
         }
     }
@@ -220,16 +225,7 @@ function dijkstraPropagate(point, buf, value) {
 
             // package all the neighboring points and
             // push them onto the stack
-            queue.push([
-                [row + 1, col],
-                [row + 1, col + 1],
-                [row, col + 1],
-                [row - 1, col + 1],
-                [row - 1, col],
-                [row - 1, col - 1],
-                [row, col - 1],
-                [row + 1, col - 1]
-            ])
+            queue.push(pixelNeighbors(row, col))
         })
     }
 }
@@ -239,6 +235,7 @@ var longestPixelStrand = 0;
 var init = true;
 const allThePixels = new Uint8Array(buffer.width * buffer.height * 4);
 const dijkstraBuffer = new Uint32Array(buffer.width * buffer.height * 4);
+
 function animate() {
 
     if (init) {
