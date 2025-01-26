@@ -262,9 +262,13 @@ function animate() {
             initBuffer[pos+3] = 255;
         })
 
-        let ephemeralTex = new THREE.DataTexture(initBuffer, width, height);
-        ephemeralTex.needsUpdate = true;
-        evoUniforms.initBufferMask.value = ephemeralTex;
+        if (evoUniforms.initBufferMask.value === null) {
+            let ephemeralTex = new THREE.DataTexture(initBuffer, width, height);
+            evoUniforms.initBufferMask.value = ephemeralTex;
+        } else {
+            evoUniforms.initBufferMask.value.source.data.data = initBuffer;
+        }
+        evoUniforms.initBufferMask.value.needsUpdate = true;
         init = false;
     }
 		let fractionAnimated = (clock.getElapsedTime() % durationInSeconds) / durationInSeconds;
@@ -281,9 +285,8 @@ function animate() {
             }
         }
     }
-    let ephemeralTex = new THREE.DataTexture(initBuffer, width, height);
-    ephemeralTex.needsUpdate = true;
-    evoUniforms.initBufferMask.value = ephemeralTex;
+    evoUniforms.initBufferMask.value.source.data.data = initBuffer;
+    evoUniforms.initBufferMask.value.needsUpdate = true;
 
     renderer.setRenderTarget(null);
     renderer.render(solidScene, camera);
