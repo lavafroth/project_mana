@@ -41,8 +41,8 @@ const uniforms = {
 }
 
 const material = new THREE.ShaderMaterial({
-    vertexShader: await get('outline.vert'),
-    fragmentShader: await get('outline.frag'),
+    vertexShader: await get('shaders/outline.vert'),
+    fragmentShader: await get('shaders/outline.frag'),
     uniforms,
     transparent: true,
 });
@@ -72,8 +72,8 @@ const evoUniforms = {
 
 const evoMaterial = new THREE.ShaderMaterial({
     // this is a copy shader
-    vertexShader: await get('evolve.vert'),
-    fragmentShader: await get('evolve.frag'),
+    vertexShader: await get('shaders/evolve.vert'),
+    fragmentShader: await get('shaders/evolve.frag'),
     uniforms: evoUniforms,
     transparent: true,
 });
