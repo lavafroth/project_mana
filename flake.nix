@@ -17,11 +17,8 @@
       {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
-            live-server
             superhtml
-            (writeScriptBin "serve" ''
-              ${pkgs.live-server}/bin/live-server --port 8000 --hard
-            '')
+            nodejs
           ];
 
         };
