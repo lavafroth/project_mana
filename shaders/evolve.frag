@@ -1,6 +1,4 @@
 varying vec2 vUv;
-
-uniform sampler2D gbufferMask;
 uniform sampler2D initBufferMask;
 
 void main() {

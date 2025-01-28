@@ -1,6 +1,4 @@
 varying vec2 vUv;
-varying vec2 clipMeshCenter;
-varying vec2 glPos;
 
 uniform float time;
 uniform vec2 viewportSize;
