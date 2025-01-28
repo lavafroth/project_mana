@@ -152,9 +152,8 @@ function continuity(bitmap, width, height) {
             }
 
             visited[row][col] = true;
-            var point = 4 * (row * width + col);
             // is this point switched off?
-            if (bitmap[point] == 0 && bitmap[point+1] == 0 && bitmap[point+2] == 0) {
+            if (bitmap[pointFlatIndex(row, col)] == 0) {
                 continue;
             }
 
@@ -168,13 +167,10 @@ function continuity(bitmap, width, height) {
 
     for (let row = 0; row < height; row++) {
         for(let col = 0; col < width; col++) {
-            if (visited[row][col]) {
+            if (visited[row][col] || bitmap[pointFlatIndex(row, col)] == 0) {
                 continue;
             }
-            var point = 4 * (row * width + col);
-            if (bitmap[point] == 1 && bitmap[point+1] == 1 && bitmap[point+2] == 1) {
-                dfs_queue(row, col);
-            }
+            dfs_queue(row, col);
         }
     }
 
@@ -187,6 +183,10 @@ function continuity(bitmap, width, height) {
 }
 
 var durationInSeconds = 5;
+
+function pointFlatIndex(row, col) {
+    return 4 * (row * buffer.width + col)
+}
 
 // @param {Float32Array[]} points
 // @param {Uint32Array} allThePixels
@@ -204,6 +204,13 @@ function dijkstraNumber(points, buf) {
     return longestStrand
 }
 
+function fillRGBA(pos, buf, value) {
+    buf[pos] = value;
+    buf[pos+1] = value;
+    buf[pos+2] = value;
+    buf[pos+3] = value;
+}
+
 function dijkstraPropagate(point, buf, value) {
     var stack = [[point]];
     for (; ;) {
@@ -212,15 +219,11 @@ function dijkstraPropagate(point, buf, value) {
             return value
         }
         neighbors.forEach(([row, col]) => {
-            let pos = 4 * (row * buffer.width + col);
+            let pos = pointFlatIndex(row, col);
             if (buf[pos] != 1) {
                 return
             }
-
-            buf[pos] = value;
-            buf[pos+1] = value;
-            buf[pos+2] = value;
-            buf[pos+3] = value;
+            fillRGBA(pos, buf, value)
             // package all the neighboring points and
             // push them onto the stack
             stack.push(pixelNeighbors(row, col))
@@ -254,13 +257,7 @@ function animate() {
     		longestPixelStrand = dijkstraNumber(points, dijkstraBuffer)
 
         let initBuffer = new Uint8Array(buffer.width * buffer.height * 4);
-        points.forEach((point) => {
-            let pos = 4 * (point[0] * buffer.width + point[1]);
-            initBuffer[pos] = 255;
-            initBuffer[pos+1] = 255;
-            initBuffer[pos+2] = 255;
-            initBuffer[pos+3] = 255;
-        })
+        points.forEach((point) => fillRGBA(pointFlatIndex(...point), initBuffer, 255))
 
         if (evoUniforms.initBufferMask.value === null) {
             let ephemeralTex = new THREE.DataTexture(initBuffer, width, height);
@@ -276,12 +273,10 @@ function animate() {
     let initBuffer = new Uint8Array(buffer.width * buffer.height * 4);
     for (let row = 0; row < height; row++) {
         for(let col=0; col<width; col++) {
-            var point = 4 * (row * width + col);
+            var point = pointFlatIndex(row, col);
             if (dijkstraBuffer[point] > 1 && dijkstraBuffer[point] < pixelsAnimated) {
-                initBuffer[point] = 255;
-                initBuffer[point+1] = 255;
-                initBuffer[point+2] = 255;
-                initBuffer[point+3] = 255;
+                // setting this to white
+                fillRGBA(point, initBuffer, 255)
             }
         }
     }
