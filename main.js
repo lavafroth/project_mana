@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
 var width = window.innerWidth
@@ -239,6 +244,18 @@ var init = true;
 const allThePixels = new Uint8Array(buffer.width * buffer.height * 4);
 const dijkstraBuffer = new Uint32Array(buffer.width * buffer.height * 4);
 
+const composer = new EffectComposer( renderer );
+const renderPass = new RenderPass(solidScene, camera);
+const nirvana = new RenderPass(evolveScene, camera);
+nirvana.clear = false;
+console.log(nirvana)
+const outputPass = new OutputPass();
+const fxaaPass = new FXAAPass();
+composer.addPass(renderPass);
+composer.addPass(nirvana);
+composer.addPass(outputPass);
+composer.addPass(fxaaPass);
+
 function animate() {
 
     if (init) {
@@ -284,14 +301,11 @@ function animate() {
     evoUniforms.initBufferMask.value.needsUpdate = true;
 
     renderer.setRenderTarget(null);
-    renderer.render(solidScene, camera);
-    renderer.autoClear = false;
-    renderer.clearDepth();
-    renderer.render(evolveScene, camera);
-    renderer.autoClear = true;
+    composer.render();
 }
 
 renderer.setAnimationLoop(animate);
+
 
 window.addEventListener('resize', function() {
     width = window.innerWidth
